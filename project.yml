@@ -1,0 +1,35 @@
+name: FlydigiPlayTogetherMapper
+options:
+  bundleIdPrefix: com.flydigi.ptmapper
+  deploymentTarget:
+    iOS: "15.0"
+targets:
+  FlydigiPlayTogetherMapper:
+    type: application
+    platform: iOS
+    sources:
+      - path: Sources/App
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.flydigi.ptmapper.app
+        INFOPLIST_FILE: Sources/App/Info.plist
+        GENERATE_INFOPLIST_FILE: NO
+        CODE_SIGN_STYLE: Manual
+        CODE_SIGN_IDENTITY: "-"
+        CODE_SIGNING_REQUIRED: NO
+        CODE_SIGNING_ALLOWED: YES
+        AD_HOC_CODE_SIGNING_ALLOWED: YES
+        ENABLE_BITCODE: NO
+schemes:
+  FlydigiPlayTogetherMapper:
+    build:
+      targets:
+        FlydigiPlayTogetherMapper: all
+    run:
+      config: Release
+    profile:
+      config: Release
+    analyze:
+      config: Release
+    archive:
+      config: Release
