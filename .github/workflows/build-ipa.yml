@@ -1,0 +1,80 @@
+name: Build Flydigi PlayTogether IPA & Dylib for ESign
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ main, master ]
+
+permissions:
+  contents: read
+
+jobs:
+  build-ios:
+    runs-on: macos-14
+    steps:
+      - name: Checkout Source
+        uses: actions/checkout@v4
+
+      - name: Generate Xcode Project with XcodeGen
+        run: |
+          set -euo pipefail
+          which xcodegen || brew install xcodegen
+          xcodegen generate
+          xcodebuild -list -project FlydigiPlayTogetherMapper.xcodeproj
+
+      - name: Build Standalone IPA
+        run: |
+          set -euo pipefail
+
+          xcodebuild build \
+            -project FlydigiPlayTogetherMapper.xcodeproj \
+            -scheme FlydigiPlayTogetherMapper \
+            -configuration Release \
+            -sdk iphoneos \
+            -destination 'generic/platform=iOS' \
+            -derivedDataPath build_output \
+            CODE_SIGN_STYLE=Manual \
+            CODE_SIGN_IDENTITY="-" \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGNING_ALLOWED=YES \
+            AD_HOC_CODE_SIGNING_ALLOWED=YES
+
+          APP_PATH=$(find build_output/Build/Products -name "FlydigiPlayTogetherMapper.app" -type d | head -n 1)
+          if [ -z "$APP_PATH" ] || [ ! -d "$APP_PATH" ]; then
+            echo "Error: FlydigiPlayTogetherMapper.app not found in build_output"
+            exit 1
+          fi
+          echo "Found compiled app at: $APP_PATH"
+
+          rm -rf Payload FlydigiPlayTogetherMapper.ipa
+          mkdir -p Payload
+          cp -R "$APP_PATH" Payload/
+          zip -r9 FlydigiPlayTogetherMapper.ipa Payload
+
+      - name: Build In-Game Touch Mapper Dylib (For ESign Inject)
+        run: |
+          set -euo pipefail
+
+          xcrun --sdk iphoneos clang \
+            -arch arm64 \
+            -dynamiclib \
+            -fobjc-arc \
+            -mios-version-min=15.0 \
+            -framework UIKit \
+            -framework Foundation \
+            -framework GameController \
+            -framework CoreBluetooth \
+            -framework QuartzCore \
+            Sources/InjectDylib/FlydigiPTInject.m \
+            -o FlydigiPTInject.dylib
+
+          codesign -s - -f FlydigiPTInject.dylib
+
+      - name: Upload IPA & Dylib Artifacts for ESign
+        uses: actions/upload-artifact@v4
+        with:
+          name: Flydigi-PlayTogether-ESign-Package
+          path: |
+            FlydigiPlayTogetherMapper.ipa
+            FlydigiPTInject.dylib
+          if-no-files-found: error
