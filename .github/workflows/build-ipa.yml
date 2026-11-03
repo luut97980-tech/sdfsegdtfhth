@@ -62,9 +62,10 @@ jobs:
             -mios-version-min=15.0 \
             -framework UIKit \
             -framework Foundation \
+            -framework CoreGraphics \
+            -framework QuartzCore \
             -framework GameController \
             -framework CoreBluetooth \
-            -framework QuartzCore \
             Sources/InjectDylib/FlydigiPTInject.m \
             -o FlydigiPTInject.dylib
 
